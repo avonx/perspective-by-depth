@@ -63,11 +63,11 @@ def create_floor_depth_map(size, camera_height, camera_angle, vanish_point=None,
 
 # 画像サイズやカメラのパラメータ
 size = (512, 512)
-camera_height = 100
+camera_height = 10
 camera_angle = 90
-steps = 20  # 消失点の移動ステップ数
-uniform_noise_intensity = 10
-radial_noise_intensity = 100
+steps = 10  # 消失点の移動ステップ数
+uniform_noise_intensity = 50
+radial_noise_intensity = 150
 
 # 生成した深度マップを保存するためのリスト
 images = []
@@ -76,7 +76,7 @@ output_folder = "output"
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
-visualize = True
+visualize = False
 
 # 異なる消失点で深度マップを生成し、画像として保存
 for i in range(steps + 1):
