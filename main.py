@@ -2,16 +2,25 @@ import numpy as np
 from PIL import Image, ImageDraw
 import os
 
+
 # 床の深度マップを生成する関数
-def create_floor_depth_map(size, camera_height, camera_angle, vanish_point=None,
-                           uniform_noise_intensity=70, radial_noise_intensity=100,
-                           visualize_horizon=False, visualize_vanish_point=False,
-                           visualize_lines=False, lines_count=16):
+def create_floor_depth_map(
+    size,
+    camera_height,
+    camera_angle,
+    vanish_point=None,
+    uniform_noise_intensity=70,
+    radial_noise_intensity=100,
+    visualize_horizon=False,
+    visualize_vanish_point=False,
+    visualize_lines=False,
+    lines_count=16,
+):
     # 深度マップの初期化
     depth_map = np.zeros((size[1], size[0]), dtype=np.float32)
     # カメラ角度をラジアンに変換
     camera_angle_radians = np.radians(camera_angle)
-    
+
     # 消失点が指定されていない場合は中心を消失点とする
     if vanish_point is None:
         vanish_point = (size[0] // 2, size[1] // 2)
@@ -27,20 +36,24 @@ def create_floor_depth_map(size, camera_height, camera_angle, vanish_point=None,
         if pixel_height < 0:
             depth = 0
         else:
-            depth = np.clip((pixel_height / (size[1] - horizon_y)) * max_depth, 0, max_depth)
+            depth = np.clip(
+                (pixel_height / (size[1] - horizon_y)) * max_depth, 0, max_depth
+            )
         depth_map[y, :] = depth
 
     # ノイズの追加
     uniform_noise = np.random.normal(0, uniform_noise_intensity, (size[1], size[0]))
     x, y = np.indices((size[1], size[0]))
-    radial_mask = np.sqrt((y - vanish_point[0])**2 + (x - vanish_point[1])**2) / np.sqrt(size[0]**2 + size[1]**2)
+    radial_mask = np.sqrt(
+        (y - vanish_point[0]) ** 2 + (x - vanish_point[1]) ** 2
+    ) / np.sqrt(size[0] ** 2 + size[1] ** 2)
     radial_noise = radial_mask * radial_noise_intensity
     depth_map += uniform_noise + radial_noise
     # 深度値のクリッピング
     depth_map = np.clip(depth_map, 0, 255)
 
     # 深度マップをRGBに変換して画像化
-    depth_map_rgb = np.stack([depth_map]*3, axis=-1)
+    depth_map_rgb = np.stack([depth_map] * 3, axis=-1)
     image = Image.fromarray(depth_map_rgb.astype(np.uint8))
     draw = ImageDraw.Draw(image)
 
@@ -61,30 +74,46 @@ def create_floor_depth_map(size, camera_height, camera_angle, vanish_point=None,
 
     return image
 
-# 画像サイズやカメラのパラメータ
-size = (512, 512)
-camera_height = 10
-camera_angle = 90
-steps = 10  # 消失点の移動ステップ数
-uniform_noise_intensity = 50
-radial_noise_intensity = 150
 
-# 生成した深度マップを保存するためのリスト
-images = []
-output_folder = "output"
-# 出力フォルダが存在しない場合は作成
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
+if __name__ == "__main__":
+    # 消失点を左から右へ移動させて深度マップを生成するサンプルコード
+    # 画像サイズやカメラのパラメータ
+    size = (512, 512)
+    camera_height = 10
+    camera_angle = 90
 
-visualize = False
+    # 消失点の移動ステップ数
+    steps = 10
 
-# 異なる消失点で深度マップを生成し、画像として保存
-for i in range(steps + 1):
-    vanish_point_x = i * size[0] // steps
-    vanish_point = (vanish_point_x, size[1] // 2)
-    image = create_floor_depth_map(size, camera_height, camera_angle, vanish_point,
-                                   uniform_noise_intensity, radial_noise_intensity,
-                                   visualize_horizon=visualize, visualize_vanish_point=visualize,
-                                   visualize_lines=visualize)
-    images.append(image)
-    image.save(os.path.join(output_folder, f"depth_map_{i}_{str(visualize)}.png")) 
+    # 全体に一様なノイズと放射状のノイズの強度
+    uniform_noise_intensity = 50
+    radial_noise_intensity = 150
+
+    # 生成した深度マップを保存するためのリスト
+    images = []
+    output_folder = "output"
+    # 出力フォルダが存在しない場合は作成
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # 可視化オプション（基本的にFalse、目視で消失点や水平線を確認したい場合のみTrueに）
+    visualize = False
+
+    # 異なる消失点で深度マップを生成し、画像として保存
+    for i in range(steps + 1):
+        vanish_point_x = i * size[0] // steps
+        vanish_point = (vanish_point_x, size[1] // 2)
+        image = create_floor_depth_map(
+            size,
+            camera_height,
+            camera_angle,
+            vanish_point,
+            uniform_noise_intensity,
+            radial_noise_intensity,
+            visualize_horizon=visualize,
+            visualize_vanish_point=visualize,
+            visualize_lines=visualize,
+        )
+        images.append(image)
+        image.save(os.path.join(output_folder, f"depth_map_{i}_{visualize}.png"))
+        print(f"Saved depth map {i}")
